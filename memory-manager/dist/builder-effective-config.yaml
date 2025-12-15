@@ -1,0 +1,30 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.sti.memory-manager
+productName: Memory Manager
+files:
+  - filter:
+      - main.js
+      - preload.js
+      - renderer/**/*
+      - assets/**/*
+extraResources:
+  - from: ../virtualSiemens
+    to: virtualSiemens
+    filter:
+      - '**/*'
+      - '!__pycache__/**'
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: assets/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Memory Manager
+electronVersion: 28.3.3
