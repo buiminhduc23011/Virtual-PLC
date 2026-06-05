@@ -3,7 +3,7 @@ class VirtualPlcApp {
         this.profiles = [];
         this.plcs = [];
         this.currentPLCName = '';
-        this.currentTab = 'registers';
+        this.currentTab = 'map';
         this.rowsByPLC = this.loadRows();
         this.mapTypes = this.loadMapTypes();
         this.mapCellState = {};
@@ -20,11 +20,13 @@ class VirtualPlcApp {
         this.toastTimer = null;
         this.modalConfirm = null;
         this.switchingPLC = false;
+        this.theme = this.loadTheme();
 
         this.init();
     }
 
     async init() {
+        this.applyTheme();
         this.bindChrome();
         this.bindWorkspace();
         this.bindModal();
@@ -34,6 +36,7 @@ class VirtualPlcApp {
     }
 
     bindChrome() {
+        document.getElementById('btn-theme').addEventListener('click', () => this.toggleTheme());
         document.getElementById('btn-minimize').addEventListener('click', () => window.electronAPI.minimize());
         document.getElementById('btn-maximize').addEventListener('click', () => window.electronAPI.maximize());
         document.getElementById('btn-close').addEventListener('click', () => window.electronAPI.close());
@@ -262,7 +265,7 @@ class VirtualPlcApp {
         dbTab.hidden = !canUseDataBlocks;
         dbPanel.hidden = !canUseDataBlocks;
         if (!canUseDataBlocks && this.currentTab === 'dbs') {
-            this.currentTab = 'registers';
+            this.currentTab = 'map';
         }
 
         document.querySelectorAll('.tab-button').forEach((button) => {
@@ -271,6 +274,14 @@ class VirtualPlcApp {
         document.querySelectorAll('.tab-panel').forEach((panel) => {
             panel.classList.toggle('active', panel.id === `tab-${this.currentTab}`);
         });
+        this.renderToolbar();
+    }
+
+    renderToolbar() {
+        const onRegisters = this.currentTab === 'registers';
+        document.getElementById('btn-add-row').hidden = !onRegisters;
+        document.getElementById('btn-bulk-add').hidden = !onRegisters;
+        document.getElementById('btn-refresh-now').hidden = true;
     }
 
     renderRows() {
@@ -510,7 +521,7 @@ class VirtualPlcApp {
 
     switchTab(tab) {
         if (tab === 'dbs' && !this.canUseDataBlocks()) {
-            tab = 'registers';
+            tab = 'map';
         }
         this.currentTab = tab;
         this.renderTabs();
@@ -707,10 +718,13 @@ class VirtualPlcApp {
     }
 
     async refreshActiveView() {
-        if (this.currentTab === 'map' && this.activeMapAreaCode) {
-            await this.refreshMapPage();
+        if (this.currentTab === 'map') {
+            if (this.activeMapAreaCode) {
+                await this.refreshMapPage();
+            }
             return;
         }
+        if (this.currentTab !== 'registers') return;
         await this.refreshRows();
     }
 
@@ -1360,6 +1374,36 @@ class VirtualPlcApp {
 
     saveMapTypes() {
         localStorage.setItem('virtual-plc-map-types-v1', JSON.stringify(this.mapTypes));
+    }
+
+    loadTheme() {
+        const savedTheme = localStorage.getItem('virtual-plc-theme-v1');
+        return savedTheme === 'dark' ? 'dark' : 'light';
+    }
+
+    saveTheme() {
+        localStorage.setItem('virtual-plc-theme-v1', this.theme);
+    }
+
+    toggleTheme() {
+        this.theme = this.theme === 'dark' ? 'light' : 'dark';
+        this.saveTheme();
+        this.applyTheme();
+    }
+
+    applyTheme() {
+        document.documentElement.dataset.theme = this.theme;
+        const button = document.getElementById('btn-theme');
+        if (!button) return;
+
+        const isDark = this.theme === 'dark';
+        const label = isDark ? 'Switch to light theme' : 'Switch to dark theme';
+        button.title = label;
+        button.setAttribute('aria-label', label);
+        button.setAttribute('aria-pressed', String(isDark));
+        button.innerHTML = isDark
+            ? '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>'
+            : '<svg class="icon" viewBox="0 0 24 24"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z" /></svg>';
     }
 
     toast(message, error = false) {

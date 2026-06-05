@@ -12,11 +12,16 @@
 <body>
     <header class="titlebar">
         <div class="titlebar-drag">
-            <div class="titlebar-mark">VP</div>
+            <div class="titlebar-mark">
+                <img src="../assets/icon.png" alt="" draggable="false">
+            </div>
             <span class="titlebar-title">Virtual PLC Studio</span>
             <span class="titlebar-status" id="titlebar-status">Starting hub</span>
         </div>
         <div class="titlebar-controls">
+            <button class="titlebar-btn theme-toggle" id="btn-theme" title="Switch to dark theme" aria-label="Switch to dark theme" aria-pressed="false">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z" /></svg>
+            </button>
             <button class="titlebar-btn" id="btn-minimize" title="Minimize" aria-label="Minimize">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14" /></svg>
             </button>
@@ -115,15 +120,15 @@
                         <span class="toggle-track"></span>
                         <span>Live</span>
                     </label>
-                    <button class="button" id="btn-add-row">
+                    <button class="button" id="btn-add-row" hidden>
                         <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
                         Row
                     </button>
-                    <button class="button" id="btn-bulk-add">
+                    <button class="button" id="btn-bulk-add" hidden>
                         <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /><path d="M8 5v14" /></svg>
                         Bulk
                     </button>
-                    <button class="button primary" id="btn-refresh-now">
+                    <button class="button primary" id="btn-refresh-now" hidden>
                         <svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v7h-7" /></svg>
                         Read
                     </button>
@@ -131,12 +136,16 @@
             </section>
 
             <section class="tabs">
-                <button class="tab-button active" data-tab="registers">Registers</button>
-                <button class="tab-button" data-tab="map">Memory Map</button>
+                <button class="tab-button active" data-tab="map">Memory Map</button>
+                <button class="tab-button" data-tab="registers">Registers</button>
                 <button class="tab-button" data-tab="dbs">Data Blocks</button>
             </section>
 
-            <section class="tab-panel active" id="tab-registers">
+            <section class="tab-panel active" id="tab-map">
+                <div class="map-grid" id="memory-map"></div>
+            </section>
+
+            <section class="tab-panel" id="tab-registers">
                 <div class="table-frame">
                     <table class="watch-table">
                         <thead>
@@ -153,10 +162,6 @@
                         <tbody id="watch-body"></tbody>
                     </table>
                 </div>
-            </section>
-
-            <section class="tab-panel" id="tab-map">
-                <div class="map-grid" id="memory-map"></div>
             </section>
 
             <section class="tab-panel" id="tab-dbs">
