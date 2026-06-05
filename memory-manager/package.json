@@ -1,7 +1,7 @@
 {
-    "name": "memory-manager",
+    "name": "virtual-plc-studio",
     "version": "1.0.0",
-    "description": "Virtual PLC Memory Region Manager",
+    "description": "Virtual PLC Studio for industrial register simulation",
     "main": "main.js",
     "scripts": {
         "start": "electron .",
@@ -13,7 +13,9 @@
     "keywords": [
         "plc",
         "siemens",
-        "memory",
+        "mitsubishi",
+        "delta",
+        "modbus",
         "virtual"
     ],
     "author": "STI",
@@ -27,8 +29,8 @@
         "electron-store": "^8.1.0"
     },
     "build": {
-        "appId": "com.sti.memory-manager",
-        "productName": "Memory Manager",
+        "appId": "com.sti.virtual-plc-studio",
+        "productName": "Virtual PLC Studio",
         "directories": {
             "output": "dist"
         },
@@ -40,8 +42,24 @@
         ],
         "extraResources": [
             {
+                "from": "../virtualHub",
+                "to": "virtualHub",
+                "filter": [
+                    "**/*",
+                    "!__pycache__/**"
+                ]
+            },
+            {
                 "from": "../virtualSiemens",
                 "to": "virtualSiemens",
+                "filter": [
+                    "**/*",
+                    "!__pycache__/**"
+                ]
+            },
+            {
+                "from": "../virtualDelta",
+                "to": "virtualDelta",
                 "filter": [
                     "**/*",
                     "!__pycache__/**"
@@ -64,7 +82,7 @@
             "allowToChangeInstallationDirectory": true,
             "createDesktopShortcut": true,
             "createStartMenuShortcut": true,
-            "shortcutName": "Memory Manager"
+            "shortcutName": "Virtual PLC Studio"
         }
     }
 }

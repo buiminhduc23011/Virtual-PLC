@@ -3,59 +3,55 @@ const path = require('path');
 const { spawn } = require('child_process');
 const http = require('http');
 
-// ============ Configuration ============
 const API_BASE = 'http://127.0.0.1:5000';
+
 let pythonProcess = null;
 let mainWindow = null;
 
-// ============ Python Server Manager ============
-function getPythonScriptPath() {
-    // When packaged, resources are in app.getPath('exe')/../resources/virtualSiemens
-    // When in dev, it's in ../virtualSiemens relative to __dirname
-    if (app.isPackaged) {
-        return path.join(process.resourcesPath, 'virtualSiemens', 'virtual_plc_s7.py');
-    } else {
-        return path.join(__dirname, '..', 'virtualSiemens', 'virtual_plc_s7.py');
-    }
+function getResourceRoot() {
+    return app.isPackaged ? process.resourcesPath : path.join(__dirname, '..');
 }
 
-function getPythonCwd() {
-    if (app.isPackaged) {
-        return path.join(process.resourcesPath, 'virtualSiemens');
-    } else {
-        return path.join(__dirname, '..', 'virtualSiemens');
-    }
+function getPythonScriptPath() {
+    return path.join(getResourceRoot(), 'virtualHub', 'virtual_plc_hub.py');
 }
 
 function startPythonServer() {
-    const pythonScript = getPythonScriptPath();
-    const cwd = getPythonCwd();
+    if (pythonProcess) {
+        return pythonProcess;
+    }
 
-    console.log('Starting Python Virtual PLC Server...');
-    console.log('Script path:', pythonScript);
+    const scriptPath = getPythonScriptPath();
+    const cwd = getResourceRoot();
+
+    console.log('Starting Virtual PLC Hub...');
+    console.log('Script path:', scriptPath);
     console.log('Working directory:', cwd);
 
-    // Try python3 first, then python
-    pythonProcess = spawn('python', [pythonScript], {
-        cwd: cwd,
-        stdio: ['pipe', 'pipe', 'pipe']
+    pythonProcess = spawn('python', [scriptPath], {
+        cwd,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: {
+            ...process.env,
+            PYTHONUNBUFFERED: '1'
+        }
     });
 
     pythonProcess.stdout.on('data', (data) => {
-        console.log(`[Python] ${data.toString().trim()}`);
+        console.log(`[Virtual PLC Hub] ${data.toString().trim()}`);
     });
 
     pythonProcess.stderr.on('data', (data) => {
-        console.error(`[Python Error] ${data.toString().trim()}`);
+        console.error(`[Virtual PLC Hub Error] ${data.toString().trim()}`);
     });
 
     pythonProcess.on('close', (code) => {
-        console.log(`Python process exited with code ${code}`);
+        console.log(`Virtual PLC Hub exited with code ${code}`);
         pythonProcess = null;
     });
 
     pythonProcess.on('error', (err) => {
-        console.error('Failed to start Python process:', err);
+        console.error('Failed to start Virtual PLC Hub:', err);
         pythonProcess = null;
     });
 
@@ -63,69 +59,75 @@ function startPythonServer() {
 }
 
 function stopPythonServer() {
-    if (pythonProcess) {
-        console.log('Stopping Python server...');
-        pythonProcess.kill();
-        pythonProcess = null;
+    if (!pythonProcess) {
+        return;
     }
+    console.log('Stopping Virtual PLC Hub...');
+    pythonProcess.kill();
+    pythonProcess = null;
 }
 
-// ============ HTTP Client for Flask API ============
 function makeRequest(method, endpoint, data = null) {
     return new Promise((resolve, reject) => {
         const url = new URL(endpoint, API_BASE);
+        const body = data === null ? null : JSON.stringify(data);
 
         const options = {
             hostname: url.hostname,
             port: url.port,
             path: url.pathname + url.search,
-            method: method,
+            method,
             headers: {
                 'Content-Type': 'application/json',
+                ...(body ? { 'Content-Length': Buffer.byteLength(body) } : {})
             },
-            timeout: 5000
+            timeout: 6000
         };
 
         const req = http.request(options, (res) => {
-            let body = '';
-            res.on('data', chunk => body += chunk);
+            let responseBody = '';
+            res.on('data', (chunk) => {
+                responseBody += chunk;
+            });
             res.on('end', () => {
+                if (!responseBody) {
+                    resolve({ success: res.statusCode < 400 });
+                    return;
+                }
                 try {
-                    const json = JSON.parse(body);
-                    resolve(json);
-                } catch (e) {
-                    resolve(body);
+                    resolve(JSON.parse(responseBody));
+                } catch {
+                    resolve(responseBody);
                 }
             });
         });
 
-        req.on('error', (e) => {
-            console.error('API request error:', e.message);
-            reject(e);
-        });
-
+        req.on('error', reject);
         req.on('timeout', () => {
             req.destroy();
             reject(new Error('Request timeout'));
         });
 
-        if (data) {
-            req.write(JSON.stringify(data));
+        if (body) {
+            req.write(body);
         }
         req.end();
     });
 }
 
-// ============ Electron App ============
+function encodeName(name) {
+    return encodeURIComponent(name);
+}
+
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 1400,
-        height: 900,
-        minWidth: 1000,
-        minHeight: 700,
+        width: 1440,
+        height: 920,
+        minWidth: 1080,
+        minHeight: 720,
         frame: false,
         transparent: false,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f4f7f9',
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -136,7 +138,6 @@ function createWindow() {
 
     mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
-    // DevTools in dev mode
     if (process.argv.includes('--dev')) {
         mainWindow.webContents.openDevTools();
     }
@@ -144,9 +145,7 @@ function createWindow() {
     Menu.setApplicationMenu(null);
 }
 
-// ============ IPC Handlers ============
 function setupIPC() {
-    // Window controls
     ipcMain.handle('window:minimize', () => mainWindow.minimize());
     ipcMain.handle('window:maximize', () => {
         if (mainWindow.isMaximized()) {
@@ -157,124 +156,151 @@ function setupIPC() {
     });
     ipcMain.handle('window:close', () => mainWindow.close());
 
-    // PLC operations - proxy to Python Flask API
+    ipcMain.handle('profiles:getAll', async () => {
+        try {
+            return await makeRequest('GET', '/api/profiles');
+        } catch (error) {
+            console.error('Failed to get profiles:', error);
+            return [];
+        }
+    });
+
     ipcMain.handle('plc:getAll', async () => {
         try {
             return await makeRequest('GET', '/api/plcs');
-        } catch (e) {
-            console.error('Failed to get PLCs:', e);
+        } catch (error) {
+            console.error('Failed to get PLCs:', error);
             return [];
         }
     });
 
-    ipcMain.handle('plc:getDataBlocks', async (event, plcName) => {
+    ipcMain.handle('plc:create', async (_event, payload) => {
         try {
-            return await makeRequest('GET', `/api/plc/${plcName}/dbs`);
-        } catch (e) {
-            console.error('Failed to get data blocks:', e);
+            return await makeRequest('POST', '/api/plcs', payload);
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('plc:update', async (_event, payload) => {
+        const { oldName, ...body } = payload;
+        try {
+            return await makeRequest('PUT', `/api/plcs/${encodeName(oldName)}`, body);
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('plc:delete', async (_event, payload) => {
+        try {
+            return await makeRequest('DELETE', `/api/plcs/${encodeName(payload.name)}`);
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('plc:getDataBlocks', async (_event, plcName) => {
+        try {
+            const response = await makeRequest('GET', `/api/plc/${encodeName(plcName)}/dbs`);
+            return Array.isArray(response) ? response : [];
+        } catch (error) {
+            console.error('Failed to get data blocks:', error);
             return [];
         }
     });
 
-    // Read value
-    ipcMain.handle('plc:readValue', async (event, { plcName, dbNumber, offset, dataType, bitOffset }) => {
+    ipcMain.handle('plc:addDB', async (_event, payload) => {
         try {
-            const result = await makeRequest('POST', '/api/read', {
-                plc: plcName,
-                db: dbNumber,
-                offset: offset,
-                type: dataType,
-                bit: bitOffset || 0
+            return await makeRequest('POST', `/api/plc/${encodeName(payload.plcName)}/dbs`, {
+                dbNumber: payload.dbNumber,
+                size: payload.size
             });
-            return result.value;
-        } catch (e) {
-            console.error('Failed to read value:', e);
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('plc:updateDB', async (_event, payload) => {
+        try {
+            return await makeRequest('PUT', `/api/plc/${encodeName(payload.plcName)}/dbs/${payload.oldDbNumber}`, {
+                dbNumber: payload.newDbNumber,
+                size: payload.newSize
+            });
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('plc:removeDB', async (_event, payload) => {
+        try {
+            return await makeRequest('DELETE', `/api/plc/${encodeName(payload.plcName)}/dbs/${payload.dbNumber}`);
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('plc:readValue', async (_event, payload) => {
+        try {
+            const result = await makeRequest('POST', '/api/read', payload);
+            return result && Object.prototype.hasOwnProperty.call(result, 'value') ? result.value : null;
+        } catch (error) {
+            console.error('Failed to read value:', error);
             return null;
         }
     });
 
-    // Write value
-    ipcMain.handle('plc:writeValue', async (event, { plcName, dbNumber, offset, dataType, value, bitOffset }) => {
+    ipcMain.handle('plc:writeValue', async (_event, payload) => {
         try {
-            console.log('Writing:', { plcName, dbNumber, offset, dataType, value, bitOffset });
-            const result = await makeRequest('POST', '/api/write', {
-                plc: plcName,
-                db: dbNumber,
-                offset: offset,
-                type: dataType,
-                value: value,
-                bit: bitOffset || 0
-            });
-            console.log('Write result:', result);
-            return result.success;
-        } catch (e) {
-            console.error('Failed to write value:', e);
-            return false;
+            return await makeRequest('POST', '/api/write', payload);
+        } catch (error) {
+            return { success: false, error: error.message };
         }
     });
 
-    // Batch read for monitoring
-    ipcMain.handle('plc:readMultiple', async (event, { plcName, addresses }) => {
+    ipcMain.handle('plc:readMultiple', async (_event, payload) => {
         try {
-            const formattedAddresses = addresses.map(addr => ({
-                db: addr.dbNumber,
-                offset: addr.offset,
-                type: addr.dataType,
-                bit: addr.bitOffset || 0
-            }));
-
-            const result = await makeRequest('POST', '/api/read/batch', {
-                plc: plcName,
-                addresses: formattedAddresses
-            });
-
-            // Map back to expected format
-            return result.map((item, index) => ({
-                ...addresses[index],
-                value: item.value
-            }));
-        } catch (e) {
-            console.error('Failed to batch read:', e);
-            return addresses.map(addr => ({ ...addr, value: null }));
+            const result = await makeRequest('POST', '/api/read/batch', payload);
+            return Array.isArray(result) ? result : [];
+        } catch (error) {
+            console.error('Failed to batch read:', error);
+            return (payload.addresses || []).map((address) => ({ ...address, value: null, quality: 'Bad', error: error.message }));
         }
     });
 
-    // Server status
     ipcMain.handle('server:status', async () => {
         try {
-            await makeRequest('GET', '/api/plcs');
-            return { connected: true, pythonRunning: pythonProcess !== null };
-        } catch (e) {
-            return { connected: false, pythonRunning: pythonProcess !== null };
+            const result = await makeRequest('GET', '/api/status');
+            return {
+                connected: true,
+                pythonRunning: pythonProcess !== null,
+                ...result
+            };
+        } catch {
+            return { connected: false, pythonRunning: pythonProcess !== null, plcs: 0 };
         }
     });
 
     ipcMain.handle('server:restart', async () => {
         stopPythonServer();
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 800));
         startPythonServer();
         return { success: true };
     });
 }
 
-// Wait for Flask server to be ready
 function waitForServer(maxRetries = 30, delay = 1000) {
     return new Promise((resolve, reject) => {
         let retries = 0;
 
         const check = () => {
-            makeRequest('GET', '/api/plcs')
-                .then(() => {
-                    console.log('Flask server is ready!');
-                    resolve(true);
-                })
+            makeRequest('GET', '/api/status')
+                .then(() => resolve(true))
                 .catch(() => {
-                    retries++;
+                    retries += 1;
                     if (retries < maxRetries) {
-                        console.log(`Waiting for Flask server... (${retries}/${maxRetries})`);
                         setTimeout(check, delay);
                     } else {
-                        reject(new Error('Flask server did not start in time'));
+                        reject(new Error('Virtual PLC Hub did not start in time'));
                     }
                 });
         };
@@ -283,18 +309,13 @@ function waitForServer(maxRetries = 30, delay = 1000) {
     });
 }
 
-// App lifecycle
 app.whenReady().then(async () => {
-    // Start Python server first
     startPythonServer();
 
-    // Wait a bit for Flask to initialize
-    console.log('Waiting for Python Flask server to start...');
-
     try {
-        await waitForServer(30, 1000);
-    } catch (e) {
-        console.error('Warning: Could not connect to Flask server. Please ensure Python is installed and flask-cors is available.');
+        await waitForServer();
+    } catch (error) {
+        console.error(error.message);
     }
 
     createWindow();

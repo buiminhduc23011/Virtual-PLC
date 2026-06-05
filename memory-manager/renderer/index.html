@@ -1,272 +1,204 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';">
-    <title>Memory Region Manager</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
+    <title>Virtual PLC Studio</title>
     <link rel="stylesheet" href="styles/main.css">
 </head>
 
 <body>
-    <!-- Title Bar -->
-    <div class="titlebar" id="titlebar">
+    <header class="titlebar">
         <div class="titlebar-drag">
-            <div class="titlebar-icon"></div>
-            <span class="titlebar-title">Memory Region Manager</span>
+            <div class="titlebar-mark">VP</div>
+            <span class="titlebar-title">Virtual PLC Studio</span>
+            <span class="titlebar-status" id="titlebar-status">Starting hub</span>
         </div>
         <div class="titlebar-controls">
-            <button class="titlebar-btn" id="btn-minimize">
-                <svg class="icon" viewBox="0 0 24 24">
-                    <path d="M5 12h14" />
-                </svg>
+            <button class="titlebar-btn" id="btn-minimize" title="Minimize" aria-label="Minimize">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14" /></svg>
             </button>
-            <button class="titlebar-btn" id="btn-maximize">
-                <svg class="icon" viewBox="0 0 24 24">
-                    <rect x="5" y="5" width="14" height="14" rx="1" />
-                </svg>
+            <button class="titlebar-btn" id="btn-maximize" title="Maximize" aria-label="Maximize">
+                <svg class="icon" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1" /></svg>
             </button>
-            <button class="titlebar-btn titlebar-btn-close" id="btn-close">
-                <svg class="icon" viewBox="0 0 24 24">
-                    <path d="M6 6l12 12M6 18L18 6" />
-                </svg>
+            <button class="titlebar-btn titlebar-btn-close" id="btn-close" title="Close" aria-label="Close">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
             </button>
         </div>
-    </div>
+    </header>
 
-    <!-- Main Container -->
-    <div class="main-container">
-        <!-- Sidebar -->
+    <div class="app-shell">
         <aside class="sidebar">
-            <div class="sidebar-section">
-                <div class="sidebar-label">PLC Connection</div>
-                <div class="plc-selector">
-                    <button class="plc-btn active" data-plc="PLC_1">
-                        <span class="plc-indicator"></span>
-                        PLC 1
-                    </button>
-                    <button class="plc-btn" data-plc="PLC_2">
-                        <span class="plc-indicator"></span>
-                        PLC 2
-                    </button>
+            <div class="sidebar-head">
+                <div>
+                    <div class="eyebrow">Virtual station</div>
+                    <h1>PLC Simulator</h1>
                 </div>
             </div>
 
-            <nav class="sidebar-nav">
-                <button class="nav-item active" data-view="regions">
-                    <span class="nav-icon">
-                        <svg class="icon" viewBox="0 0 24 24">
-                            <rect x="3" y="3" width="7" height="7" />
-                            <rect x="14" y="3" width="7" height="7" />
-                            <rect x="3" y="14" width="7" height="7" />
-                            <rect x="14" y="14" width="7" height="7" />
-                        </svg>
-                    </span>
-                    <span class="nav-text">Data Blocks</span>
+            <div class="server-strip">
+                <span class="status-dot" id="server-dot"></span>
+                <span id="server-text">Hub offline</span>
+                <button class="icon-button" id="btn-restart" title="Restart hub" aria-label="Restart hub">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v7h-7" /></svg>
                 </button>
-                <button class="nav-item" data-view="monitor">
-                    <span class="nav-icon">
-                        <svg class="icon" viewBox="0 0 24 24">
-                            <path d="M3 3v18h18" />
-                            <path d="M18 9l-5 5-4-4-3 3" />
-                        </svg>
-                    </span>
-                    <span class="nav-text">Monitor</span>
-                </button>
-                <button class="nav-item" data-view="write">
-                    <span class="nav-icon">
-                        <svg class="icon" viewBox="0 0 24 24">
-                            <path d="M12 20h9" />
-                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                        </svg>
-                    </span>
-                    <span class="nav-text">Write Values</span>
-                </button>
-                <button class="nav-item" data-view="settings">
-                    <span class="nav-icon">
-                        <svg class="icon" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="3" />
-                            <path
-                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                        </svg>
-                    </span>
-                    <span class="nav-text">PLC Settings</span>
-                </button>
-            </nav>
+            </div>
 
-            <div class="sidebar-footer">
-                <div class="status-indicator">
-                    <span class="status-dot online"></span>
-                    <span>Virtual PLC Active</span>
+            <div class="plc-picker">
+                <label class="picker-label" for="plc-profile-select">PLC profile</label>
+                <select class="plc-profile-select" id="plc-profile-select"></select>
+
+                <div class="station-summary">
+                    <div class="station-summary-line">
+                        <span class="status-dot" id="station-dot"></span>
+                        <strong class="station-name" id="station-name">No PLC active</strong>
+                        <span class="quality-pill" id="station-status">Stopped</span>
+                    </div>
+                    <div class="station-kind" id="station-kind">--</div>
+                    <div class="station-endpoint" id="station-endpoint">--</div>
+                </div>
+            </div>
+
+            <div class="sidebar-inspector">
+                <div class="inspector-section">
+                    <div class="eyebrow">Profile</div>
+                    <h3 id="inspector-profile">--</h3>
+                    <div class="metric-row">
+                        <span>Protocol</span>
+                        <strong id="inspector-protocol">--</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Status</span>
+                        <strong id="inspector-status">--</strong>
+                    </div>
+                    <div class="metric-row">
+                        <span>Endpoint</span>
+                        <strong id="inspector-endpoint">--</strong>
+                    </div>
+                </div>
+
+                <div class="inspector-section">
+                    <div class="section-line">
+                        <span class="eyebrow">Examples</span>
+                        <button class="mini-link" id="btn-seed-defaults">Seed</button>
+                    </div>
+                    <div class="example-list" id="example-list"></div>
+                </div>
+
+                <div class="inspector-section">
+                    <div class="eyebrow">Actions</div>
+                    <div class="action-stack">
+                        <button class="button wide" id="btn-edit-plc">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                            Edit PLC
+                        </button>
+                    </div>
                 </div>
             </div>
         </aside>
 
-        <!-- Content Area -->
-        <main class="content">
-            <!-- Data Blocks View -->
-            <section class="view active" id="view-regions">
-                <div class="view-header">
-                    <h2>Data Blocks</h2>
-                    <button class="btn btn-primary" id="btn-add-db">
-                        <svg class="icon" viewBox="0 0 24 24">
-                            <path d="M12 5v14M5 12h14" />
-                        </svg>
-                        Add DB
+        <main class="workspace">
+            <section class="workspace-top">
+                <div class="active-plc">
+                    <div class="eyebrow">Active PLC</div>
+                    <div class="active-row">
+                        <h2 id="active-plc-name">No PLC</h2>
+                        <span class="profile-pill" id="active-profile">Profile</span>
+                    </div>
+                    <div class="endpoint-line" id="active-endpoint">--</div>
+                </div>
+                <div class="toolbar">
+                    <label class="toggle">
+                        <input type="checkbox" id="auto-refresh" checked>
+                        <span class="toggle-track"></span>
+                        <span>Live</span>
+                    </label>
+                    <button class="button" id="btn-add-row">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+                        Row
+                    </button>
+                    <button class="button" id="btn-bulk-add">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /><path d="M8 5v14" /></svg>
+                        Bulk
+                    </button>
+                    <button class="button primary" id="btn-refresh-now">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v7h-7" /></svg>
+                        Read
                     </button>
                 </div>
+            </section>
 
-                <div class="card">
-                    <table class="data-table" id="db-table">
+            <section class="tabs">
+                <button class="tab-button active" data-tab="registers">Registers</button>
+                <button class="tab-button" data-tab="map">Memory Map</button>
+                <button class="tab-button" data-tab="dbs">Data Blocks</button>
+            </section>
+
+            <section class="tab-panel active" id="tab-registers">
+                <div class="table-frame">
+                    <table class="watch-table">
                         <thead>
                             <tr>
-                                <th>DB Number</th>
-                                <th>Size (bytes)</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th class="col-tag">Tag</th>
+                                <th class="col-address">Address</th>
+                                <th class="col-type">Type</th>
+                                <th class="col-value">Value</th>
+                                <th class="col-quality">Quality</th>
+                                <th class="col-time">Updated</th>
+                                <th class="col-actions"></th>
                             </tr>
                         </thead>
-                        <tbody id="db-table-body">
-                            <!-- Dynamic content -->
-                        </tbody>
+                        <tbody id="watch-body"></tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- Monitor View -->
-            <section class="view" id="view-monitor">
-                <div class="view-header">
-                    <h2>Value Monitor</h2>
-                    <div class="monitor-controls">
-                        <label class="toggle-label">
-                            <input type="checkbox" id="auto-refresh" checked>
-                            <span class="toggle-switch"></span>
-                            <span>Auto Refresh</span>
-                        </label>
-                        <span class="refresh-indicator" id="refresh-indicator">Live</span>
-                    </div>
-                </div>
-
-                <div class="monitor-add-bar">
-                    <select id="monitor-db" class="input">
-                        <!-- Dynamic options -->
-                    </select>
-                    <input type="number" id="monitor-offset" class="input" placeholder="Offset" value="0" min="0">
-                    <select id="monitor-type" class="input">
-                        <option value="BOOL">BOOL</option>
-                        <option value="BYTE">BYTE</option>
-                        <option value="WORD">WORD</option>
-                        <option value="DWORD">DWORD</option>
-                        <option value="INT" selected>INT</option>
-                        <option value="DINT">DINT</option>
-                        <option value="REAL">REAL</option>
-                        <option value="STRING">STRING</option>
-                    </select>
-                    <input type="number" id="monitor-bit" class="input input-small" placeholder="Bit" value="0" min="0"
-                        max="7">
-                    <button class="btn btn-primary" id="btn-add-monitor">
-                        <svg class="icon" viewBox="0 0 24 24">
-                            <path d="M12 5v14M5 12h14" />
-                        </svg>
-                        Add
-                    </button>
-                </div>
-
-                <div class="card monitor-grid" id="monitor-grid">
-                    <!-- Dynamic monitor cards -->
-                </div>
+            <section class="tab-panel" id="tab-map">
+                <div class="map-grid" id="memory-map"></div>
             </section>
 
-            <!-- Write Values View -->
-            <section class="view" id="view-write">
-                <div class="view-header">
-                    <h2>Write Values</h2>
-                    <button class="btn btn-success" id="btn-write-all">
-                        <svg class="icon" viewBox="0 0 24 24">
-                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                        </svg>
-                        Write All
+            <section class="tab-panel" id="tab-dbs">
+                <div class="db-toolbar">
+                    <button class="button" id="btn-add-db">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+                        DB
                     </button>
                 </div>
-
-                <div class="card">
-                    <div class="write-form" id="write-form">
-                        <div class="write-row header-row">
-                            <div class="write-col">DB</div>
-                            <div class="write-col">Offset</div>
-                            <div class="write-col">Type</div>
-                            <div class="write-col">Bit</div>
-                            <div class="write-col">Value</div>
-                            <div class="write-col">Action</div>
-                        </div>
-                        <div id="write-rows">
-                            <!-- Dynamic rows -->
-                        </div>
-                        <button class="btn btn-ghost" id="btn-add-write-row">
-                            <svg class="icon" viewBox="0 0 24 24">
-                                <path d="M12 5v14M5 12h14" />
-                            </svg>
-                            Add Row
-                        </button>
-                    </div>
-                </div>
-
-                <div class="write-response" id="write-response"></div>
-            </section>
-
-            <!-- PLC Settings View -->
-            <section class="view" id="view-settings">
-                <div class="view-header">
-                    <h2>PLC Settings</h2>
-                    <button class="btn btn-primary" id="btn-add-plc">
-                        <svg class="icon" viewBox="0 0 24 24">
-                            <path d="M12 5v14M5 12h14" />
-                        </svg>
-                        Add PLC
-                    </button>
-                </div>
-
-                <div class="card">
-                    <table class="data-table" id="plc-table">
+                <div class="table-frame compact">
+                    <table class="watch-table">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>IP Address</th>
-                                <th>Port</th>
-                                <th>Data Blocks</th>
-                                <th>Actions</th>
+                                <th>DB</th>
+                                <th>Size</th>
+                                <th></th>
                             </tr>
                         </thead>
-                        <tbody id="plc-table-body">
-                            <!-- Dynamic content -->
-                        </tbody>
+                        <tbody id="db-body"></tbody>
                     </table>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Modal -->
     <div class="modal-overlay" id="modal-overlay">
-        <div class="modal" id="modal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <div class="modal-header">
-                <h3 id="modal-title">Add Data Block</h3>
-                <button class="modal-close" id="modal-close">
-                    <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M6 6l12 12M6 18L18 6" />
-                    </svg>
+                <h3 id="modal-title">Modal</h3>
+                <button class="icon-button" id="modal-close" title="Close" aria-label="Close">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
                 </button>
             </div>
-            <div class="modal-body" id="modal-body">
-                <!-- Dynamic content -->
-            </div>
+            <div class="modal-body" id="modal-body"></div>
             <div class="modal-footer">
-                <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
-                <button class="btn btn-primary" id="modal-confirm">Confirm</button>
+                <button class="button" id="modal-cancel">Cancel</button>
+                <button class="button primary" id="modal-confirm">Confirm</button>
             </div>
         </div>
     </div>
+
+    <div class="toast" id="toast"></div>
 
     <script src="scripts/app.js"></script>
 </body>
