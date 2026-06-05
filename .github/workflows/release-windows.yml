@@ -40,14 +40,14 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install pnpm
-        run: npm install --global pnpm@11.4.0
+      - name: Check pnpm version
+        run: npx --yes pnpm@11.4.0 --version
 
       - name: Install Electron dependencies
-        run: pnpm --dir memory-manager install --frozen-lockfile
+        run: npx --yes pnpm@11.4.0 --dir memory-manager install --frozen-lockfile
 
       - name: Build Windows installer
-        run: pnpm --dir memory-manager exec electron-builder --win --publish never --config.win.signAndEditExecutable=false
+        run: npx --yes pnpm@11.4.0 --dir memory-manager exec electron-builder --win --publish never --config.win.signAndEditExecutable=false
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
